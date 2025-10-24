@@ -1,0 +1,19 @@
+name: Firmware Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: platformio/action-install@v1
+      - run: platformio run --environment esp32dev
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            .pio/build/esp32dev/*.bin
+

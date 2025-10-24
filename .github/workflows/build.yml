@@ -1,0 +1,30 @@
+name: Build firmware
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        board: [esp32dev, nodemcu-32s]
+        project: [controller, scoreboard]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PlatformIO
+        uses: platformio/action-install@v1
+
+      - name: Build ${{ matrix.project }}
+        run: |
+          cd ${{ matrix.project }}
+          platformio run --environment ${{ matrix.board }}
+
+      - name: Run Lint
+        run: |
+          pip install cpplint
+          cpplint --recursive shared
+  
