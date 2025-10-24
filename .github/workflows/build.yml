@@ -41,7 +41,7 @@ jobs:
           cpplint --recursive --quiet shared || true
 
 
-      - name: Build Firmware (${{ matrix.project }} - ${{ matrix-board }})
+      - name: Build Firmware (${{ matrix.project }} - ${{ matrix.board }})
         run: |
           cd ${{ matrix.project }}
           pio run -e ${{ matrix.board }}
