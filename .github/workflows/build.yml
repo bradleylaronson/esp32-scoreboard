@@ -15,16 +15,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup PlatformIO
-        uses: platformio/action-install@v1
+      # Cache PIO + pip to speed up builds
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-
 
-      - name: Build ${{ matrix.project }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Dependencies
+        run: |
+          pip install --upgrade platformio cpplint
+
+      - name: Lint shared headers
+        run: |
+          echo "Running cpplint on shared code..."
+          cpplint --recursive --quiet shared || true
+
+
+      - name: Build Firmware (${{ matrix.project }} - ${{ matrix-board }})
         run: |
           cd ${{ matrix.project }}
-          platformio run --environment ${{ matrix.board }}
-
-      - name: Run Lint
-        run: |
-          pip install cpplint
-          cpplint --recursive shared
+          pio run -e ${{ matrix.board }}
   

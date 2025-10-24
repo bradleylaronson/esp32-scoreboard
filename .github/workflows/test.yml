@@ -6,6 +6,7 @@ on:
       - "shared/**"
       - "tools/**"
       - ".github/workflows/test.yml"
+  pull_request:
 
 jobs:
   tests:
