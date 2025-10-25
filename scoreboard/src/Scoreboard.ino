@@ -20,7 +20,7 @@
 // ============================================================================
 
 // LED GPIO
-#define LED_PIN 2
+#define LED_PIN 16  // Changed from 2 - safer pin choice
 
 // Scoreboard ID (optional - can be set differently for each board)
 // Set to 0 or 1 to identify which scoreboard this is
@@ -123,7 +123,7 @@ void setup() {
   // Configure LED pin
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
-  Serial.println("[OK] LED configured on GPIO 2");
+  Serial.println("[OK] LED configured on GPIO 16");
 
   // Initialize WiFi in Station mode
   WiFi.mode(WIFI_STA);

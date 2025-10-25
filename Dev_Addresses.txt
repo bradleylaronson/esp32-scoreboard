@@ -1,0 +1,8 @@
+Controller: 
+MAC Address: 44:1D:64:F8:FD:84
+
+Scoreboard 1:
+MAC Address: 78:1C:3C:CB:D7:4C
+
+Scoreboard 2:
+MAC Address: 44:1D:64:F8:26:2C

@@ -22,19 +22,16 @@
 // ============================================================================
 
 // Button GPIO
-#define BUTTON_PIN 2
+#define BUTTON_PIN 15  // Changed from 2 - safer pin choice
 
 // LED GPIO
-#define LED_PIN 4
+#define LED_PIN 16     // Changed from 4 - safer pin choice
 
 // Scoreboard MAC Addresses
-// TODO: Update these with actual MAC addresses from your scoreboard ESP32s
+// Updated from Dev_Addresses.txt
 // Format: {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}
-uint8_t SCOREBOARD_1_MAC[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};  // REPLACE ME
-uint8_t SCOREBOARD_2_MAC[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};  // REPLACE ME
-
-// Use broadcast address for initial testing (reaches all ESP-NOW devices)
-uint8_t BROADCAST_MAC[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+uint8_t SCOREBOARD_1_MAC[] = {0x78, 0x1C, 0x3C, 0xCB, 0xD7, 0x4C};  // Scoreboard 1
+uint8_t SCOREBOARD_2_MAC[] = {0x44, 0x1D, 0x64, 0xF8, 0x26, 0x2C};  // Scoreboard 2
 
 // ============================================================================
 // SIMPLE PACKET STRUCTURE FOR STAGE 1
@@ -83,12 +80,12 @@ void setup() {
 
   // Configure button pin
   pinMode(BUTTON_PIN, INPUT_PULLUP);
-  Serial.println("[OK] Button configured on GPIO 2");
+  Serial.println("[OK] Button configured on GPIO 15");
 
   // Configure LED pin
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
-  Serial.println("[OK] LED configured on GPIO 4");
+  Serial.println("[OK] LED configured on GPIO 16");
 
   // Initialize WiFi in Station mode
   WiFi.mode(WIFI_STA);
@@ -105,21 +102,12 @@ void setup() {
   // Register send callback
   esp_now_register_send_cb(onDataSent);
 
-  // Add broadcast peer for initial testing
+  // Add specific scoreboard peers
   esp_now_peer_info_t peerInfo = {};
   peerInfo.channel = 0;  // Use current channel
   peerInfo.encrypt = false;
 
-  // Add broadcast peer
-  memcpy(peerInfo.peer_addr, BROADCAST_MAC, 6);
-  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
-    Serial.println("[ERROR] Failed to add broadcast peer");
-  } else {
-    Serial.println("[OK] Broadcast peer added");
-  }
-
-  // Optional: Add specific scoreboard peers (uncomment when MAC addresses are known)
-  /*
+  // Add Scoreboard 1
   memcpy(peerInfo.peer_addr, SCOREBOARD_1_MAC, 6);
   if (esp_now_add_peer(&peerInfo) == ESP_OK) {
     Serial.print("[OK] Scoreboard 1 peer added: ");
@@ -128,8 +116,11 @@ void setup() {
       if (i < 5) Serial.print(":");
     }
     Serial.println();
+  } else {
+    Serial.println("[ERROR] Failed to add Scoreboard 1 peer");
   }
 
+  // Add Scoreboard 2
   memcpy(peerInfo.peer_addr, SCOREBOARD_2_MAC, 6);
   if (esp_now_add_peer(&peerInfo) == ESP_OK) {
     Serial.print("[OK] Scoreboard 2 peer added: ");
@@ -138,8 +129,9 @@ void setup() {
       if (i < 5) Serial.print(":");
     }
     Serial.println();
+  } else {
+    Serial.println("[ERROR] Failed to add Scoreboard 2 peer");
   }
-  */
 
   // Flash LED 3 times to indicate ready
   Serial.println("\n[READY] Press button to toggle LEDs");
@@ -184,17 +176,27 @@ void loop() {
       packet.ledState = ledState ? 1 : 0;
       packet.sequence = packetSequence++;
 
-      // Send packet to broadcast address
-      esp_err_t result = esp_now_send(BROADCAST_MAC,
-                                       (uint8_t*)&packet,
-                                       sizeof(packet));
+      // Send packet to Scoreboard 1
+      esp_err_t result1 = esp_now_send(SCOREBOARD_1_MAC,
+                                        (uint8_t*)&packet,
+                                        sizeof(packet));
 
-      if (result == ESP_OK) {
+      // Send packet to Scoreboard 2
+      esp_err_t result2 = esp_now_send(SCOREBOARD_2_MAC,
+                                        (uint8_t*)&packet,
+                                        sizeof(packet));
+
+      if (result1 == ESP_OK && result2 == ESP_OK) {
         Serial.print("Packet #");
         Serial.print(packet.sequence);
-        Serial.println(" queued for transmission");
+        Serial.println(" queued for transmission to both scoreboards");
       } else {
-        Serial.println("ERROR: Failed to queue packet!");
+        if (result1 != ESP_OK) {
+          Serial.println("ERROR: Failed to queue packet to Scoreboard 1!");
+        }
+        if (result2 != ESP_OK) {
+          Serial.println("ERROR: Failed to queue packet to Scoreboard 2!");
+        }
       }
 
       // Wait for button release (simple approach)

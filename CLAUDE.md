@@ -158,12 +158,16 @@ tools/test-simulator/      - Host-side test harness
 
 This project follows a staged development approach. See **[STAGES.md](STAGES.md)** for the complete development plan.
 
-**Current Stage: Stage 1 - ESP-NOW Proof-of-Concept**
+**Current Stage: Stage 2 - Single Digit with TLC5947**
 
-Building a simple system to validate ESP-NOW communication:
-- 1 controller with button
-- 2 scoreboards with single LEDs each
-- Button toggles both LEDs on/off wirelessly
+**Stage 1 Completed:**
+- ESP-NOW wireless communication validated
+- Controller firmware with individual peer addressing
+- 2 scoreboards receiving and processing packets
+- Button control toggles LEDs wirelessly
+- MAC addresses documented in `Dev_Addresses.txt`
+- Packet sequence tracking and dropped packet detection
+- Serial debugging on all devices
 
 **Stage 0 Completed:**
 - Base PlatformIO project structure for controller and scoreboard
@@ -173,7 +177,7 @@ Building a simple system to validate ESP-NOW communication:
 - Test simulator for host-side validation
 
 **Upcoming Stages:**
-- Stage 2: Single digit with TLC5947
+- Stage 2: Single digit with TLC5947 (CURRENT)
 - Stage 3: Full 8-digit display
 - Stage 4: Complete feature set (quarters, robustness, configuration)
 - Stage 5: Custom PCB and mechanical integration

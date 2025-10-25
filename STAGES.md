@@ -16,7 +16,8 @@ This document outlines the staged development plan for the ESP32 scoreboard syst
 
 ---
 
-## Stage 1: ESP-NOW Proof-of-Concept (Current Stage)
+## Stage 1: ESP-NOW Proof-of-Concept ✓
+**Status: COMPLETE**
 **Goal: Validate ESP-NOW communication between 3 ESP32s**
 
 ### Hardware Required
@@ -28,45 +29,48 @@ This document outlines the staged development plan for the ESP32 scoreboard syst
 
 ### Wiring
 **Controller:**
-- Button: GPIO 2 (with internal pull-up)
+- Button: GPIO 15 (with internal pull-up)
 - Button GND connection
-- LED anode → GPIO 4 (through 220Ω resistor)
+- LED anode → GPIO 16 (through 220Ω resistor)
 - LED cathode → GND
 
 **Scoreboards (both identical):**
-- LED anode → GPIO 2 (through 220Ω resistor)
+- LED anode → GPIO 16 (through 220Ω resistor)
 - LED cathode → GND
 
 ### Firmware Requirements
 
 #### Controller (`controller/src/Controller.ino`)
 1. Initialize ESP-NOW as master
-2. Register both scoreboard MAC addresses as peers
+2. Register both scoreboard MAC addresses as individual peers
 3. Button handling:
-   - Read GPIO 2 with debouncing
+   - Read GPIO 15 with debouncing
    - Toggle state on press
    - Create simple packet with LED state (on/off)
-   - Broadcast packet to both scoreboards via ESP-NOW
-4. Serial debugging output
+   - Send packet to each scoreboard individually via ESP-NOW
+4. Serial debugging output with per-scoreboard transmission status
 
 #### Scoreboard (`scoreboard/src/Scoreboard.ino`)
 1. Initialize ESP-NOW as slave
 2. Register callback for incoming packets
 3. Parse received packet for LED state
-4. Set GPIO 2 HIGH/LOW based on state
-5. Serial debugging output showing received packets
+4. Set GPIO 16 HIGH/LOW based on state
+5. Serial debugging output showing received packets and statistics
 
 ### Success Criteria
-- [ ] Controller successfully initializes ESP-NOW
-- [ ] Both scoreboards pair with controller
-- [ ] Button press on controller toggles LEDs on both scoreboards
-- [ ] Serial monitor shows packet transmission/reception
-- [ ] System works reliably over ~10-20m range
+- [x] Controller successfully initializes ESP-NOW
+- [x] Both scoreboards pair with controller
+- [x] Button press on controller toggles LEDs on both scoreboards
+- [x] Serial monitor shows packet transmission/reception
+- [x] System works reliably over ~10-20m range
 
-### Notes
-- Use simplified packet for this stage (just 1 byte for LED state)
-- Can migrate to full ScoreboardPkt structure once basic communication works
-- Document MAC addresses of all 3 ESP32s for peer registration
+### Implementation Notes
+- Used simplified `Stage1Packet` structure (LED state + sequence number)
+- Implemented individual peer mode (sends to each scoreboard separately)
+- MAC addresses documented in `Dev_Addresses.txt`
+- Packet sequence tracking for dropped packet detection
+- 200ms debounce on button presses
+- Serial monitoring on all devices for debugging
 
 ---
 
@@ -307,4 +311,8 @@ Each stage should include:
 
 ## Current Status
 
-**We are at Stage 1** - ready to begin ESP-NOW proof-of-concept implementation.
+**Stage 1 Complete!** ✓
+
+ESP-NOW proof-of-concept successfully implemented and tested. All three devices (1 controller + 2 scoreboards) communicate wirelessly with individual peer addressing.
+
+**Ready to begin Stage 2** - Single digit display with TLC5947 LED driver.
