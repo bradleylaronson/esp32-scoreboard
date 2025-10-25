@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        board: [esp32dev, nodemcu-32s]
+        board: [esp32:dev, nodemcu-32s]
         project: [controller, scoreboard]
     steps:
       - name: Checkout
