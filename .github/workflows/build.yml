@@ -9,7 +9,6 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        board: [esp32:dev, nodemcu-32s]
         project: [controller, scoreboard]
     steps:
       - name: Checkout
@@ -43,5 +42,5 @@ jobs:
 
       - name: Build Firmware (${{ matrix.project }} - ${{ matrix.board }})
         run: |
-          pio run -d ${{ matrix.project }} -e ${{ matrix.board }}
+          pio run -d ${{ matrix.project }} -e esp32dev
   
