@@ -308,9 +308,9 @@ Stage 1 Controller - ESP-NOW POC
 [OK] LED configured on GPIO 16
 [OK] WiFi MAC Address: XX:XX:XX:XX:XX:XX
 [OK] ESP-NOW initialized
-[OK] Broadcast peer added
-[OK] Scoreboard 1 peer added: YY:YY:YY:YY:YY:YY  <-- If you uncommented
-[OK] Scoreboard 2 peer added: ZZ:ZZ:ZZ:ZZ:ZZ:ZZ  <-- If you uncommented
+[OK] ESP-NOW callbacks registered
+[OK] Scoreboard 1 peer added: YY:YY:YY:YY:YY:YY
+[OK] Scoreboard 2 peer added: ZZ:ZZ:ZZ:ZZ:ZZ:ZZ
 
 [READY] Press button to toggle LEDs
 ===============================================
@@ -377,20 +377,77 @@ Press the button again:
 ```
 --- Button Pressed ---
 New LED State: ON
-Packet #0 queued for transmission
-Packet sent to: FF:FF:FF:FF:FF:FF | Status: SUCCESS
+Packet #0 (LED ON) queued for transmission to both scoreboards
+Packet sent to: YY:YY:YY:YY:YY:YY | Status: SUCCESS
+Packet sent to: ZZ:ZZ:ZZ:ZZ:ZZ:ZZ | Status: SUCCESS
+
+[HEARTBEAT] Sending periodic state update
+Packet #1 (LED ON) queued for transmission to both scoreboards
+Packet sent to: YY:YY:YY:YY:YY:YY | Status: SUCCESS
+Packet sent to: ZZ:ZZ:ZZ:ZZ:ZZ:ZZ | Status: SUCCESS
 ```
 
 **Each Scoreboard should show:**
 ```
+[BOOT] Sending state request to controller (ID: 0)
+[OK] State request sent
+
 --- Packet Received ---
 From MAC: XX:XX:XX:XX:XX:XX  (controller's MAC)
 Sequence: 0
 LED State: ON
 LED set to: ON
+[SYNCED] State synchronized with controller!
 Total packets: 1 | Dropped: 0
 -----------------------
 ```
+
+---
+
+## Step 7: Test Hybrid State Synchronization
+
+Stage 1 includes a **hybrid state sync** feature that ensures scoreboards always match the controller's state, even when powered on late.
+
+### 7.1 How It Works
+
+The system uses two sync mechanisms:
+
+1. **Fast Sync (State Request)**: When a scoreboard boots, it sends a request to the controller asking for the current state. The controller responds immediately.
+
+2. **Heartbeat Fallback**: The controller broadcasts the current state every 3 seconds, ensuring late-joining scoreboards eventually sync.
+
+### 7.2 Test Fast Sync (State Request)
+
+1. Power up controller and press button to turn LED **ON**
+2. Power up a scoreboard
+3. **Expected**: Scoreboard LED turns ON within ~100ms
+4. **Serial output should show**:
+   - Scoreboard: `[BOOT] Sending state request`
+   - Controller: `[STATE REQUEST] Received from scoreboard #0`
+   - Controller: `[RESPONSE] Packet #X (LED ON) queued`
+   - Scoreboard: `[SYNCED] State synchronized with controller!`
+
+### 7.3 Test Heartbeat Fallback
+
+1. Power up controller with LED in **OFF** state
+2. Wait for heartbeat (max 3 seconds)
+3. Power up a scoreboard
+4. **Expected**: Scoreboard LED syncs to OFF within 3 seconds
+5. **Serial output should show**:
+   - Controller: `[HEARTBEAT] Sending periodic state update` (every 3 seconds)
+   - Scoreboard: Receives heartbeat packet and syncs
+
+### 7.4 Test Offline Controller
+
+1. Power up scoreboard **without** controller running
+2. **Expected**: After 5 seconds, scoreboard shows timeout warning
+3. **Serial output should show**:
+   ```
+   [WARNING] State sync timeout - controller may be offline
+   [INFO] Will sync from next heartbeat or button press
+   ```
+4. Power up controller
+5. **Expected**: Scoreboard syncs from next heartbeat (within 3 seconds)
 
 ---
 
@@ -438,6 +495,7 @@ Total packets: 1 | Dropped: 0
 
 ## Success Criteria
 
+### Basic Functionality
 ✓ All three boards power on and flash LEDs 3 times
 ✓ Button press toggles all 3 LEDs ON simultaneously
 ✓ Second button press toggles all 3 LEDs OFF simultaneously
@@ -445,6 +503,15 @@ Total packets: 1 | Dropped: 0
 ✓ Serial monitor shows packet reception on scoreboards
 ✓ No dropped packets under normal button presses
 ✓ System works reliably over multiple presses
+
+### Hybrid State Sync
+✓ Scoreboards send state request on boot
+✓ Controller responds to state requests immediately
+✓ Late-joining scoreboards sync within 100ms (via request/response)
+✓ Heartbeat broadcasts state every 3 seconds
+✓ Scoreboards sync from heartbeat if request fails
+✓ Timeout warning shown if controller offline for 5+ seconds
+✓ Both scoreboards can be rebooted independently and resync correctly
 
 ---
 

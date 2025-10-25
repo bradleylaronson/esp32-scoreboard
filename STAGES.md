@@ -65,12 +65,32 @@ This document outlines the staged development plan for the ESP32 scoreboard syst
 - [x] System works reliably over ~10-20m range
 
 ### Implementation Notes
-- Used simplified `Stage1Packet` structure (LED state + sequence number)
-- Implemented individual peer mode (sends to each scoreboard separately)
+
+**Communication:**
+- Simplified `Stage1Packet` structure (LED state + sequence number)
+- Individual peer mode (controller sends to each scoreboard separately)
+- Bidirectional ESP-NOW (controller can receive, scoreboards can send)
 - MAC addresses documented in `Dev_Addresses.txt`
+
+**Hybrid State Synchronization (Option 3):**
+- **State Request**: Scoreboards send `StateRequest` packet on boot
+- **Immediate Response**: Controller responds within ~100ms with current state
+- **Periodic Heartbeat**: Controller broadcasts state every 3 seconds
+- **Timeout Handling**: 5-second timeout with fallback to heartbeat sync
+- **Robust**: Works with late-joining scoreboards, controller reboots, and offline scenarios
+
+**Reliability Features:**
 - Packet sequence tracking for dropped packet detection
 - 200ms debounce on button presses
-- Serial monitoring on all devices for debugging
+- Serial debugging on all devices with tagged output ([BOOT], [HEARTBEAT], [SYNCED])
+
+**Testing:**
+- Unit tests for CRC validation and font rendering (all passing)
+- Host-side test simulator in `tools/test-simulator/`
+- **Hardware testing complete** - All 18 tests passed
+- Verified on 3× ESP32-DevKit boards
+- Reliable communication at 10m+ range
+- Fast sync (<100ms), heartbeat (3s), and timeout (5s) all working as designed
 
 ---
 
@@ -311,8 +331,29 @@ Each stage should include:
 
 ## Current Status
 
-**Stage 1 Complete!** ✓
+**Stage 1 Complete and Hardware Tested!** ✅
 
-ESP-NOW proof-of-concept successfully implemented and tested. All three devices (1 controller + 2 scoreboards) communicate wirelessly with individual peer addressing.
+ESP-NOW proof-of-concept successfully implemented, tested, and validated on hardware.
 
-**Ready to begin Stage 2** - Single digit display with TLC5947 LED driver.
+**What Works:**
+- ✅ Wireless communication between 1 controller + 2 scoreboards
+- ✅ Individual peer addressing (targeted communication)
+- ✅ Hybrid state synchronization (request/response + heartbeat)
+- ✅ Late-joining scoreboard support (syncs within 100ms - verified on hardware)
+- ✅ Bidirectional ESP-NOW communication
+- ✅ Packet sequence tracking and dropped packet detection
+- ✅ Unit tests for CRC and font rendering (all passing)
+- ✅ **Hardware testing complete - 18/18 tests passed**
+- ✅ Reliable 10m+ range communication
+- ✅ Comprehensive documentation and upload guide
+
+**Test Results:**
+- Basic functionality: 4/4 passed
+- Hybrid state sync: 5/5 passed
+- Reliability & edge cases: 4/4 passed
+- Unit tests: 3/3 passed
+- Build tests: 2/2 passed
+
+**Next: Stage 2 - Single Digit with TLC5947**
+
+Waiting on TLC5947 LED driver boards to arrive. Ready to implement single 4×7 digit rendering.

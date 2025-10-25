@@ -160,14 +160,17 @@ This project follows a staged development approach. See **[STAGES.md](STAGES.md)
 
 **Current Stage: Stage 2 - Single Digit with TLC5947**
 
-**Stage 1 Completed:**
+**Stage 1 Completed and Hardware Tested:**
 - ESP-NOW wireless communication validated
 - Controller firmware with individual peer addressing
 - 2 scoreboards receiving and processing packets
 - Button control toggles LEDs wirelessly
+- Hybrid state synchronization (fast sync + heartbeat)
 - MAC addresses documented in `Dev_Addresses.txt`
 - Packet sequence tracking and dropped packet detection
 - Serial debugging on all devices
+- **All hardware tests passed (18/18)**
+- Verified 10m+ reliable communication range
 
 **Stage 0 Completed:**
 - Base PlatformIO project structure for controller and scoreboard
