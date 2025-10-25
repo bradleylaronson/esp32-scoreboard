@@ -16,6 +16,7 @@
 
 #include <WiFi.h>
 #include <esp_now.h>
+#include "../../shared/Packets.h"
 
 // ============================================================================
 // CONFIGURATION
@@ -32,15 +33,6 @@
 // Format: {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}
 uint8_t SCOREBOARD_1_MAC[] = {0x78, 0x1C, 0x3C, 0xCB, 0xD7, 0x4C};  // Scoreboard 1
 uint8_t SCOREBOARD_2_MAC[] = {0x44, 0x1D, 0x64, 0xF8, 0x26, 0x2C};  // Scoreboard 2
-
-// ============================================================================
-// SIMPLE PACKET STRUCTURE FOR STAGE 1
-// ============================================================================
-
-struct Stage1Packet {
-  uint8_t ledState;     // 0 = OFF, 1 = ON
-  uint32_t sequence;    // Packet sequence number
-} __attribute__((packed));
 
 // ============================================================================
 // GLOBAL STATE

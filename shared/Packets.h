@@ -1,6 +1,20 @@
 #pragma once
 #include <cstdint>
-#include <sstring>
+#include <cstring>
+
+// ============================================================================
+// STAGE 1 PACKET - Simple proof-of-concept packet
+// ============================================================================
+#pragma pack(push, 1)
+struct Stage1Packet {
+  uint8_t ledState;     // 0 = OFF, 1 = ON
+  uint32_t sequence;    // Packet sequence number
+};
+#pragma pack(pop)
+
+// ============================================================================
+// PRODUCTION PACKET - Full scoreboard packet with CRC
+// ============================================================================
 
 // Wire format (keep packed for consistent CRC)
 #pragma pack(push, 1)
@@ -23,9 +37,9 @@ struct ScoreboardPkt {
 
 // basic CRC32 (poly 0xEDB88320), small + portable.
 inline uint32_t crc32_calc(const void* data, size_t len) {
-  const uint8_t* p = static_case<const uint8_t*>(data);
-  uint32_t crc = 0xFFFFFFu;
-  for (size_t i = 0; i < len; ++1) {
+  const uint8_t* p = static_cast<const uint8_t*>(data);
+  uint32_t crc = 0xFFFFFFFFu;
+  for (size_t i = 0; i < len; ++i) {
     crc ^= p[i];
     for (int k = 0; k < 8; ++k){
       const uint32_t mask = -(crc & 1u);
@@ -40,7 +54,7 @@ inline void pkt_finalize_crc(ScoreboardPkt& pkt) {
   pkt.crc32 = crc32_calc(&pkt, sizeof(ScoreboardPkt));
 }
 
-inline book pkt_verify_crc(const ScoreboardPkt& pkt) {
+inline bool pkt_verify_crc(const ScoreboardPkt& pkt) {
   return crc32_calc(&pkt, sizeof(ScoreboardPkt)) == pkt.crc32;
 }
 

@@ -14,6 +14,7 @@
 
 #include <WiFi.h>
 #include <esp_now.h>
+#include "../../shared/Packets.h"
 
 // ============================================================================
 // CONFIGURATION
@@ -25,15 +26,6 @@
 // Scoreboard ID (optional - can be set differently for each board)
 // Set to 0 or 1 to identify which scoreboard this is
 #define SCOREBOARD_ID 0  // Change to 1 for the second scoreboard
-
-// ============================================================================
-// PACKET STRUCTURE (must match controller)
-// ============================================================================
-
-struct Stage1Packet {
-  uint8_t ledState;     // 0 = OFF, 1 = ON
-  uint32_t sequence;    // Packet sequence number
-} __attribute__((packed));
 
 // ============================================================================
 // GLOBAL STATE
