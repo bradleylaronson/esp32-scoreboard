@@ -1,3 +1,5 @@
+[![Build firmware](https://github.com/bradleylaronson/esp32-scoreboard/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/bradleylaronson/esp32-scoreboard/actions/workflows/build.yml)
+
 # Scoreboard 2
 
 ESP32 Based Scoreboard
