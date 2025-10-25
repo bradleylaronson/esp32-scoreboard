@@ -2,7 +2,7 @@
 #include <cstdint>
 
 // 4x7 font, each glyph is 7 rows of 4 bits (LSB=left)
-// rows top -> bottom, Valu 0x0..0xF for each row.
+// rows top -> bottom, Value 0x0..0xF for each row.
 struct Glyph4x7 { uint8_t rows[7]; };
 
 constexpr Glyph4x7 DIGITS_4x7[12] = {
@@ -29,5 +29,13 @@ constexpr Glyph4x7 DIGITS_4x7[12] = {
   /*blank*/
   {{0,0,0,0,0,0,0}},
   /*-*/
-  {{0,0,0,1b1111,0,0,0}},
+  {{0,0,0,0b1111,0,0,0}},
 };
+
+// Helper function to get glyph for a digit (0-9, 10=blank, 11=minus)
+inline const Glyph4x7& glyph_for_digit(int digit) {
+  if (digit < 0 || digit > 11) {
+    return DIGITS_4x7[10];  // Return blank for invalid digits
+  }
+  return DIGITS_4x7[digit];
+}

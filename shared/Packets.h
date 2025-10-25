@@ -61,10 +61,14 @@ inline uint32_t crc32_calc(const void* data, size_t len) {
 
 inline void pkt_finalize_crc(ScoreboardPkt& pkt) {
   pkt.crc32 = 0u;
-  pkt.crc32 = crc32_calc(&pkt, sizeof(ScoreboardPkt));
+  pkt.crc32 = crc32_calc(&pkt, sizeof(ScoreboardPkt) - sizeof(pkt.crc32));
 }
 
 inline bool pkt_verify_crc(const ScoreboardPkt& pkt) {
-  return crc32_calc(&pkt, sizeof(ScoreboardPkt)) == pkt.crc32;
+  uint32_t saved_crc = pkt.crc32;
+  ScoreboardPkt temp = pkt;
+  temp.crc32 = 0u;
+  uint32_t calc_crc = crc32_calc(&temp, sizeof(ScoreboardPkt) - sizeof(temp.crc32));
+  return calc_crc == saved_crc;
 }
 

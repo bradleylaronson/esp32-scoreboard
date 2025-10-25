@@ -47,7 +47,7 @@ static void packet_roundtrip_test() {
   // Corrupt one byte -> CRC must fail
   ScoreboardPkt bad = pkt;
   bad.home_digits[0] ^= 0xFF;
-  assert(!pck_verify_crc(bad));
+  assert(!pkt_verify_crc(bad));
 
   std::cout << "[OK] CRC roundtrip test passed. CRC=0x" << std::hex << std::uppercase << pkt.crc32 << std::dec << "\n";
 }
@@ -61,7 +61,7 @@ int main() {
     std::cout << "\nASCII render of 8 digits:\n";
     ascii_render_8digits(digits);
 
-    std:cout << "\nAll tests passed.\n";
+    std::cout << "\nAll tests passed.\n";
     return 0;
   } catch (...) {
     std::cerr << "Test failed with an unexpected exception.\n";

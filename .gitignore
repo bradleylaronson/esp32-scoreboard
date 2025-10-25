@@ -1,2 +1,9 @@
 *.pio
 
+# Build artifacts
+.pio/
+.vscode/
+
+# Test simulator build artifacts
+tools/test-simulator/test-simulator
+tools/test-simulator/test_crc*
