@@ -39,6 +39,8 @@ Two PlatformIO projects share common code:
 ### Documentation
 
 - **[STAGES.md](STAGES.md)**: Staged development plan from POC to production
+- **[FEATURES.md](FEATURES.md)**: Stage 1 enhanced features documentation
+- **[TESTING.md](TESTING.md)**: Comprehensive test procedures and results
 - **[CLAUDE.md](CLAUDE.md)**: This file - guidance for Claude Code
 - **hardware/bom.md**: Bill of materials and component sourcing
 
@@ -136,11 +138,11 @@ The TLC5947 LED driver provides 24 PWM channels per chip. Multiple drivers can b
 
 ```
 controller/
-  src/Controller.ino       - Controller firmware (currently stubs)
+  src/Controller.ino       - Controller firmware with enhanced features
   platformio.ini           - PlatformIO config for controller
 
 scoreboard/
-  src/Scoreboard.ino       - Scoreboard firmware (currently stubs)
+  src/Scoreboard.ino       - Scoreboard firmware with LED pattern rendering
   platformio.ini           - PlatformIO config for scoreboard
 
 shared/
@@ -151,7 +153,7 @@ shared/
 
 tools/test-simulator/      - Host-side test harness
   main.cpp                 - Tests CRC roundtrip and ASCII rendering
-  MakeFile                 - Build simulator on host machine
+  Makefile                 - Build simulator on host machine
 ```
 
 ### Development Status
@@ -166,10 +168,16 @@ This project follows a staged development approach. See **[STAGES.md](STAGES.md)
 - 2 scoreboards receiving and processing packets
 - Button control toggles LEDs wirelessly
 - Hybrid state synchronization (fast sync + heartbeat)
+- **Enhanced Features:**
+  - PWM brightness control (0-255 levels, 4 presets)
+  - LED blink patterns (steady, slow 1Hz, fast 4Hz, SOS)
+  - Serial command interface (ON, OFF, BRIGHTNESS, MODE, STATUS, HELP)
+  - Enhanced button controls (short press: toggle, long press: brightness)
+  - Synchronized multi-device behavior
 - MAC addresses documented in `Dev_Addresses.txt`
 - Packet sequence tracking and dropped packet detection
 - Serial debugging on all devices
-- **All hardware tests passed (18/18)**
+- **All hardware tests passed (28/28)**
 - Verified 10m+ reliable communication range
 
 **Stage 0 Completed:**

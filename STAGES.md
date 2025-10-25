@@ -67,7 +67,7 @@ This document outlines the staged development plan for the ESP32 scoreboard syst
 ### Implementation Notes
 
 **Communication:**
-- Simplified `Stage1Packet` structure (LED state + sequence number)
+- `Stage1Packet` structure (LED state, brightness, mode, sequence number)
 - Individual peer mode (controller sends to each scoreboard separately)
 - Bidirectional ESP-NOW (controller can receive, scoreboards can send)
 - MAC addresses documented in `Dev_Addresses.txt`
@@ -84,10 +84,24 @@ This document outlines the staged development plan for the ESP32 scoreboard syst
 - 200ms debounce on button presses
 - Serial debugging on all devices with tagged output ([BOOT], [HEARTBEAT], [SYNCED])
 
+**Enhanced Features:**
+- **PWM Brightness Control**: 0-255 levels with predefined presets (25%, 50%, 75%, 100%)
+- **LED Blink Patterns**: 4 modes (steady, slow 1Hz, fast 4Hz, SOS pattern)
+- **Serial Command Interface**: Full control via Serial Monitor (ON, OFF, BRIGHTNESS, MODE, STATUS, HELP)
+- **Enhanced Button Controls**: Short press (toggle LED), Long press (cycle brightness)
+- **Synchronized Behavior**: All features work across controller + 2 scoreboards
+- See [FEATURES.md](FEATURES.md) for complete documentation
+
 **Testing:**
 - Unit tests for CRC validation and font rendering (all passing)
 - Host-side test simulator in `tools/test-simulator/`
-- **Hardware testing complete** - All 18 tests passed
+- **Hardware testing complete** - All 28 tests passed
+  - Basic functionality: 4/4 passed
+  - Hybrid state sync: 5/5 passed
+  - Reliability & edge cases: 4/4 passed
+  - Enhanced features: 10/10 passed
+  - Unit tests: 3/3 passed
+  - Build tests: 2/2 passed
 - Verified on 3× ESP32-DevKit boards
 - Reliable communication at 10m+ range
 - Fast sync (<100ms), heartbeat (3s), and timeout (5s) all working as designed
@@ -342,8 +356,13 @@ ESP-NOW proof-of-concept successfully implemented, tested, and validated on hard
 - ✅ Late-joining scoreboard support (syncs within 100ms - verified on hardware)
 - ✅ Bidirectional ESP-NOW communication
 - ✅ Packet sequence tracking and dropped packet detection
+- ✅ **PWM brightness control** (0-255 levels, 4 presets)
+- ✅ **LED blink patterns** (steady, slow, fast, SOS)
+- ✅ **Serial command interface** (ON, OFF, BRIGHTNESS, MODE, STATUS, HELP)
+- ✅ **Enhanced button controls** (short press: toggle, long press: brightness)
+- ✅ **Synchronized multi-device behavior** (all features work across 3 devices)
 - ✅ Unit tests for CRC and font rendering (all passing)
-- ✅ **Hardware testing complete - 18/18 tests passed**
+- ✅ **Hardware testing complete - 28/28 tests passed**
 - ✅ Reliable 10m+ range communication
 - ✅ Comprehensive documentation and upload guide
 
@@ -351,6 +370,7 @@ ESP-NOW proof-of-concept successfully implemented, tested, and validated on hard
 - Basic functionality: 4/4 passed
 - Hybrid state sync: 5/5 passed
 - Reliability & edge cases: 4/4 passed
+- Enhanced features: 10/10 passed
 - Unit tests: 3/3 passed
 - Build tests: 2/2 passed
 

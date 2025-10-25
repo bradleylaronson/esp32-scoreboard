@@ -39,19 +39,35 @@ uint8_t SCOREBOARD_2_MAC[] = {0x44, 0x1D, 0x64, 0xF8, 0x26, 0x2C};  // Scoreboar
 // ============================================================================
 
 bool ledState = false;           // Current LED state (off/on)
+uint8_t brightness = 255;        // Current brightness (0-255)
+uint8_t mode = 0;                // Current mode (0=steady, 1=slow_blink, 2=fast_blink, 3=SOS)
 uint32_t packetSequence = 0;     // Packet counter
+
 unsigned long lastButtonPress = 0;
 const unsigned long DEBOUNCE_MS = 200;  // 200ms debounce
+const unsigned long LONG_PRESS_MS = 1000;  // 1 second for long press
 
 // Heartbeat for periodic state broadcast
 unsigned long lastHeartbeat = 0;
 const unsigned long HEARTBEAT_INTERVAL_MS = 3000;  // 3 seconds
+
+// Brightness levels for cycling
+const uint8_t BRIGHTNESS_LEVELS[] = {64, 128, 192, 255};  // 25%, 50%, 75%, 100%
+uint8_t brightnessIndex = 3;  // Start at 100%
+
+// Controller LED blink pattern state (matches scoreboard behavior)
+unsigned long lastControllerBlinkTime = 0;
+bool controllerBlinkState = false;
+int controllerSosIndex = 0;
 
 // ============================================================================
 // FORWARD DECLARATIONS
 // ============================================================================
 
 void sendCurrentState(bool isResponse = false);
+void processSerialCommand();
+void printStatus();
+void updateControllerLED();
 
 // ============================================================================
 // ESP-NOW CALLBACKS
@@ -96,6 +112,9 @@ void onDataReceived(const uint8_t *mac_addr, const uint8_t *data, int len) {
 void sendCurrentState(bool isResponse) {
   Stage1Packet packet;
   packet.ledState = ledState ? 1 : 0;
+  packet.brightness = brightness;
+  packet.mode = mode;
+  packet.reserved = 0;
   packet.sequence = packetSequence++;
 
   // Send packet to Scoreboard 1
@@ -116,6 +135,10 @@ void sendCurrentState(bool isResponse) {
     Serial.print(packet.sequence);
     Serial.print(" (LED ");
     Serial.print(ledState ? "ON" : "OFF");
+    Serial.print(", Brightness ");
+    Serial.print(brightness);
+    Serial.print(", Mode ");
+    Serial.print(mode);
     Serial.println(") queued for transmission to both scoreboards");
   } else {
     if (result1 != ESP_OK) {
@@ -124,6 +147,136 @@ void sendCurrentState(bool isResponse) {
     if (result2 != ESP_OK) {
       Serial.println("ERROR: Failed to queue packet to Scoreboard 2!");
     }
+  }
+}
+
+void printStatus() {
+  Serial.println("\n========== Status ==========");
+  Serial.print("LED State: ");
+  Serial.println(ledState ? "ON" : "OFF");
+  Serial.print("Brightness: ");
+  Serial.print(brightness);
+  Serial.print(" (");
+  Serial.print((brightness * 100) / 255);
+  Serial.println("%)");
+  Serial.print("Mode: ");
+  switch(mode) {
+    case 0: Serial.println("Steady"); break;
+    case 1: Serial.println("Slow Blink"); break;
+    case 2: Serial.println("Fast Blink"); break;
+    case 3: Serial.println("SOS"); break;
+    default: Serial.println("Unknown"); break;
+  }
+  Serial.print("Packet Sequence: ");
+  Serial.println(packetSequence);
+  Serial.println("===========================\n");
+}
+
+void processSerialCommand() {
+  if (Serial.available() > 0) {
+    String cmd = Serial.readStringUntil('\n');
+    cmd.trim();
+    cmd.toUpperCase();
+
+    if (cmd == "ON") {
+      ledState = true;
+      Serial.println("[CMD] LED ON");
+      sendCurrentState(false);
+    }
+    else if (cmd == "OFF") {
+      ledState = false;
+      Serial.println("[CMD] LED OFF");
+      sendCurrentState(false);
+    }
+    else if (cmd.startsWith("BRIGHTNESS ")) {
+      int val = cmd.substring(11).toInt();
+      if (val >= 0 && val <= 255) {
+        brightness = val;
+        Serial.print("[CMD] Brightness set to ");
+        Serial.println(brightness);
+        sendCurrentState(false);
+      } else {
+        Serial.println("[ERROR] Brightness must be 0-255");
+      }
+    }
+    else if (cmd.startsWith("MODE ")) {
+      int val = cmd.substring(5).toInt();
+      if (val >= 0 && val <= 3) {
+        mode = val;
+        Serial.print("[CMD] Mode set to ");
+        Serial.println(mode);
+        sendCurrentState(false);
+      } else {
+        Serial.println("[ERROR] Mode must be 0-3 (0=steady, 1=slow, 2=fast, 3=SOS)");
+      }
+    }
+    else if (cmd == "STATUS") {
+      printStatus();
+    }
+    else if (cmd == "HELP") {
+      Serial.println("\nAvailable Commands:");
+      Serial.println("  ON                  - Turn LED on");
+      Serial.println("  OFF                 - Turn LED off");
+      Serial.println("  BRIGHTNESS <0-255>  - Set brightness");
+      Serial.println("  MODE <0-3>          - Set mode (0=steady, 1=slow, 2=fast, 3=SOS)");
+      Serial.println("  STATUS              - Show current status");
+      Serial.println("  HELP                - Show this help\n");
+    }
+    else {
+      Serial.println("[ERROR] Unknown command. Type HELP for commands.");
+    }
+  }
+}
+
+void updateControllerLED() {
+  if (!ledState) {
+    // LED is off
+    analogWrite(LED_PIN, 0);
+    return;
+  }
+
+  unsigned long currentTime = millis();
+
+  switch (mode) {
+    case 0:  // Steady
+      analogWrite(LED_PIN, brightness);
+      break;
+
+    case 1:  // Slow blink (1 Hz - 500ms on, 500ms off)
+      if (currentTime - lastControllerBlinkTime >= 500) {
+        lastControllerBlinkTime = currentTime;
+        controllerBlinkState = !controllerBlinkState;
+      }
+      analogWrite(LED_PIN, controllerBlinkState ? brightness : 0);
+      break;
+
+    case 2:  // Fast blink (4 Hz - 125ms on, 125ms off)
+      if (currentTime - lastControllerBlinkTime >= 125) {
+        lastControllerBlinkTime = currentTime;
+        controllerBlinkState = !controllerBlinkState;
+      }
+      analogWrite(LED_PIN, controllerBlinkState ? brightness : 0);
+      break;
+
+    case 3:  // SOS pattern (... --- ...)
+      {
+        // SOS: 3 short (200ms), 3 long (600ms), 3 short (200ms), pause (1000ms)
+        const unsigned int sosTiming[] = {200, 200, 200, 600, 600, 600, 200, 200, 200, 1000};
+        const int sosCount = 10;
+
+        if (currentTime - lastControllerBlinkTime >= sosTiming[controllerSosIndex]) {
+          lastControllerBlinkTime = currentTime;
+          controllerSosIndex = (controllerSosIndex + 1) % sosCount;
+          // Odd indices are gaps, even are pulses
+          controllerBlinkState = (controllerSosIndex % 2 == 0);
+        }
+        analogWrite(LED_PIN, controllerBlinkState ? brightness : 0);
+      }
+      break;
+
+    default:
+      analogWrite(LED_PIN, brightness);
+      break;
   }
 }
 
@@ -214,36 +367,61 @@ void setup() {
 // ============================================================================
 
 void loop() {
+  // Process serial commands
+  processSerialCommand();
+
   // Read button state (active LOW - pressed when LOW)
   bool buttonPressed = (digitalRead(BUTTON_PIN) == LOW);
 
-  // Debounced button press detection
-  if (buttonPressed) {
+  // Debounced button press detection with short/long press support
+  static bool wasPressed = false;
+  static unsigned long pressStartTime = 0;
+
+  if (buttonPressed && !wasPressed) {
+    // Button just pressed - record time
+    pressStartTime = millis();
+    wasPressed = true;
+  }
+  else if (!buttonPressed && wasPressed) {
+    // Button just released - check duration
+    unsigned long pressDuration = millis() - pressStartTime;
     unsigned long currentTime = millis();
 
-    // Check if enough time has passed since last press (debounce)
+    // Debounce check
     if (currentTime - lastButtonPress > DEBOUNCE_MS) {
       lastButtonPress = currentTime;
 
-      // Toggle LED state
-      ledState = !ledState;
+      if (pressDuration >= LONG_PRESS_MS) {
+        // Long press - cycle brightness
+        brightnessIndex = (brightnessIndex + 1) % 4;
+        brightness = BRIGHTNESS_LEVELS[brightnessIndex];
 
-      Serial.println("\n--- Button Pressed ---");
-      Serial.print("New LED State: ");
-      Serial.println(ledState ? "ON" : "OFF");
+        Serial.println("\n--- Long Press ---");
+        Serial.print("Brightness: ");
+        Serial.print(brightness);
+        Serial.print(" (");
+        Serial.print((brightness * 100) / 255);
+        Serial.println("%)");
 
-      // Update controller LED
-      digitalWrite(LED_PIN, ledState ? HIGH : LOW);
+        sendCurrentState(false);
+      }
+      else {
+        // Short press - toggle LED
+        ledState = !ledState;
 
-      // Send current state to scoreboards
-      sendCurrentState(false);
+        Serial.println("\n--- Button Press ---");
+        Serial.print("New LED State: ");
+        Serial.println(ledState ? "ON" : "OFF");
 
-      // Wait for button release (simple approach)
-      while (digitalRead(BUTTON_PIN) == LOW) {
-        delay(10);
+        sendCurrentState(false);
       }
     }
+
+    wasPressed = false;
   }
+
+  // Update controller LED based on current state, brightness, and mode
+  updateControllerLED();
 
   // Periodic heartbeat - send current state every 3 seconds
   unsigned long currentTime = millis();

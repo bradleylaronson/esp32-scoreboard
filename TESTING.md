@@ -373,9 +373,238 @@ make test
 
 ---
 
-## Test Suite 5: Firmware Build Tests
+## Test Suite 5: Enhanced Features (Stage 1+)
 
-### Test 5.1: Controller Firmware Build
+### Test 5.1: Brightness Control via Serial
+
+**Objective**: Verify PWM brightness control works correctly.
+
+**Procedure:**
+1. Open serial monitor on controller (115200 baud)
+2. Type: `ON`
+3. Type: `BRIGHTNESS 255`
+4. Observe LEDs at full brightness
+5. Type: `BRIGHTNESS 128`
+6. Observe LEDs at half brightness
+7. Type: `BRIGHTNESS 64`
+8. Observe LEDs at quarter brightness
+
+**Expected Results:**
+```
+✓ All 3 LEDs respond to brightness commands
+✓ Brightness change is smooth and immediate
+✓ Serial shows "[CMD] Brightness set to X"
+✓ Lower brightness values visibly dimmer
+```
+
+**Pass Criteria**: Brightness changes visible on all 3 LEDs.
+
+---
+
+### Test 5.2: Brightness Control via Long Press
+
+**Objective**: Verify button long-press cycles brightness.
+
+**Procedure:**
+1. Ensure LED is ON
+2. Hold button for 1+ seconds (long press)
+3. Release and observe brightness change
+4. Repeat 3 more times
+
+**Expected Results:**
+```
+✓ First long press: Changes to next brightness level
+✓ Second long press: Changes to next level
+✓ Third long press: Changes to next level
+✓ Fourth long press: Cycles back to first level
+✓ Serial shows "--- Long Press ---" and brightness percentage
+```
+
+**Pass Criteria**: 4 brightness levels cycle correctly (25%, 50%, 75%, 100%).
+
+---
+
+### Test 5.3: Slow Blink Pattern
+
+**Objective**: Verify Mode 1 (slow blink) works.
+
+**Procedure:**
+1. Type: `ON`
+2. Type: `MODE 1`
+3. Observe LEDs for 10 seconds
+4. Count blink cycles
+
+**Expected Results:**
+```
+✓ All 3 LEDs blink in sync
+✓ Blink rate: approximately 1 Hz (1 cycle per second)
+✓ Timing: 500ms ON, 500ms OFF
+✓ Should observe ~10 complete cycles in 10 seconds
+```
+
+**Pass Criteria**: LEDs blink at 1 Hz, synchronized across all devices.
+
+---
+
+### Test 5.4: Fast Blink Pattern
+
+**Objective**: Verify Mode 2 (fast blink) works.
+
+**Procedure:**
+1. Type: `ON`
+2. Type: `MODE 2`
+3. Observe LEDs for 5 seconds
+4. Verify fast blink rate
+
+**Expected Results:**
+```
+✓ All 3 LEDs blink rapidly in sync
+✓ Blink rate: approximately 4 Hz (4 cycles per second)
+✓ Timing: 125ms ON, 125ms OFF
+✓ Should observe ~20 complete cycles in 5 seconds
+```
+
+**Pass Criteria**: LEDs blink at 4 Hz, synchronized across all devices.
+
+---
+
+### Test 5.5: SOS Pattern
+
+**Objective**: Verify Mode 3 (SOS pattern) works correctly.
+
+**Procedure:**
+1. Type: `ON`
+2. Type: `MODE 3`
+3. Observe LEDs for one complete SOS cycle
+4. Verify pattern: ... --- ...
+
+**Expected Results:**
+```
+✓ Pattern starts with 3 short pulses (...)
+✓ Followed by 3 long pulses (---)
+✓ Followed by 3 short pulses (...)
+✓ Then 1 second pause
+✓ Pattern repeats
+✓ All 3 LEDs synchronized
+```
+
+**Pass Criteria**: SOS pattern recognizable and synchronized.
+
+---
+
+### Test 5.6: Serial Commands - Basic
+
+**Objective**: Verify all basic serial commands work.
+
+**Procedure:**
+1. Type each command and verify response:
+   - `HELP`
+   - `STATUS`
+   - `ON`
+   - `OFF`
+
+**Expected Results:**
+```
+HELP → Shows command list
+STATUS → Shows current state (LED, brightness, mode, sequence)
+ON → LED turns on, shows "[CMD] LED ON"
+OFF → LED turns off, shows "[CMD] LED OFF"
+```
+
+**Pass Criteria**: All commands execute and show appropriate responses.
+
+---
+
+### Test 5.7: Brightness with Blink Patterns
+
+**Objective**: Verify brightness affects blink pattern intensity.
+
+**Procedure:**
+1. Type: `ON`
+2. Type: `MODE 2` (fast blink)
+3. Type: `BRIGHTNESS 255` → Observe
+4. Type: `BRIGHTNESS 128` → Observe
+5. Type: `BRIGHTNESS 64` → Observe
+
+**Expected Results:**
+```
+✓ At 255: Blinks at full brightness
+✓ At 128: Blinks dimmer
+✓ At 64: Blinks much dimmer
+✓ Blink rate stays constant (4 Hz)
+✓ Only brightness of pulses changes
+```
+
+**Pass Criteria**: Brightness affects pulse intensity, not timing.
+
+---
+
+### Test 5.8: State Sync with Enhanced Features
+
+**Objective**: Verify enhanced features sync on scoreboard boot.
+
+**Procedure:**
+1. On controller: `ON`, `BRIGHTNESS 128`, `MODE 2`
+2. Power cycle one scoreboard
+3. Observe scoreboard sync behavior
+
+**Expected Results:**
+```
+✓ Scoreboard sends state request
+✓ Controller responds with full state
+✓ Scoreboard LED: ON, half brightness, fast blink
+✓ Syncs within 100ms
+✓ Matches controller behavior exactly
+```
+
+**Pass Criteria**: Scoreboard syncs brightness and mode correctly.
+
+---
+
+### Test 5.9: Mode Persistence
+
+**Objective**: Verify mode persists across LED on/off.
+
+**Procedure:**
+1. Type: `ON`, `MODE 2`, `BRIGHTNESS 64`
+2. Type: `OFF`
+3. Type: `ON`
+
+**Expected Results:**
+```
+✓ After turning back ON:
+  - Mode still 2 (fast blink)
+  - Brightness still 64
+  - State restored correctly
+```
+
+**Pass Criteria**: Mode and brightness persist across LED toggles.
+
+---
+
+### Test 5.10: Invalid Commands
+
+**Objective**: Verify error handling for invalid commands.
+
+**Procedure:**
+1. Type: `INVALID`
+2. Type: `BRIGHTNESS 300`
+3. Type: `MODE 5`
+
+**Expected Results:**
+```
+INVALID → "[ERROR] Unknown command. Type HELP for commands."
+BRIGHTNESS 300 → "[ERROR] Brightness must be 0-255"
+MODE 5 → "[ERROR] Mode must be 0-3 (0=steady, 1=slow, 2=fast, 3=SOS)"
+```
+
+**Pass Criteria**: All invalid inputs show appropriate error messages.
+
+---
+
+## Test Suite 6: Firmware Build Tests
+
+### Test 6.1: Controller Firmware Build
 
 **Procedure:**
 ```bash

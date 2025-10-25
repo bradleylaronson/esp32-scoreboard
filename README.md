@@ -25,8 +25,9 @@ ESP-NOW proof-of-concept successfully implemented and validated on hardware:
 - ✅ Bidirectional ESP-NOW communication
 - ✅ Late-joining scoreboard support (<100ms sync)
 - ✅ Packet sequence tracking
+- ✅ **Enhanced features:** PWM brightness, LED patterns, serial interface
 - ✅ Unit tests (all passing)
-- ✅ **Hardware tests (18/18 passed)**
+- ✅ **Hardware tests (28/28 passed)**
 - ✅ **10m+ reliable range verified**
 
 **Next:** Stage 2 - Single digit display with TLC5947 LED driver
@@ -34,6 +35,7 @@ ESP-NOW proof-of-concept successfully implemented and validated on hardware:
 ## Documentation
 
 - **[STAGES.md](STAGES.md)** - Complete development roadmap (Stage 0-5)
+- **[FEATURES.md](FEATURES.md)** - Stage 1 enhanced features (brightness, patterns, serial interface)
 - **[STAGE1_UPLOAD_GUIDE.md](STAGE1_UPLOAD_GUIDE.md)** - Step-by-step firmware upload instructions
 - **[TESTING.md](TESTING.md)** - Comprehensive test procedures
 - **[CLAUDE.md](CLAUDE.md)** - AI assistant guidance and project architecture
@@ -76,10 +78,11 @@ See [STAGE1_UPLOAD_GUIDE.md](STAGE1_UPLOAD_GUIDE.md) for complete upload and tes
 - ✅ Basic functionality: 4/4 passed
 - ✅ Hybrid state sync: 5/5 passed
 - ✅ Reliability & edge cases: 4/4 passed
+- ✅ Enhanced features: 10/10 passed
 - ✅ Unit tests: 3/3 passed
 - ✅ Build tests: 2/2 passed
 
-**Total: 18/18 tests passed**
+**Total: 28/28 tests passed**
 
 ### Run Unit Tests
 
@@ -110,6 +113,15 @@ This repository uses GitHub Actions to:
 - **Fast Sync**: Scoreboards request state on boot (~100ms response)
 - **Heartbeat**: Controller broadcasts state every 3 seconds
 - **Robust**: Handles late-joining scoreboards and offline scenarios
+
+### Enhanced LED Control
+- **PWM Brightness**: 0-255 levels with 4 presets (25%, 50%, 75%, 100%)
+- **Blink Patterns**: 4 modes (steady, slow 1Hz, fast 4Hz, SOS pattern)
+- **Serial Interface**: Full control via commands (ON, OFF, BRIGHTNESS, MODE, STATUS, HELP)
+- **Button Controls**: Short press (toggle), Long press (cycle brightness)
+- **Synchronized**: All features work across controller + 2 scoreboards
+
+See [FEATURES.md](FEATURES.md) for complete documentation.
 
 ### Reliability
 - Packet sequence tracking with dropped packet detection

@@ -38,11 +38,18 @@ uint32_t lastSequence = 0;
 uint32_t packetsReceived = 0;
 uint32_t packetsDropped = 0;
 bool ledState = false;
+uint8_t brightness = 255;
+uint8_t mode = 0;
 
 // State sync management
 bool stateSynced = false;
 unsigned long bootTime = 0;
 const unsigned long SYNC_TIMEOUT_MS = 5000;  // Wait max 5 seconds for sync
+
+// Blink pattern state
+unsigned long lastBlinkTime = 0;
+bool blinkState = false;
+int sosIndex = 0;  // For SOS pattern
 
 // ============================================================================
 // ESP-NOW CALLBACKS
@@ -89,13 +96,24 @@ void onDataReceived(const uint8_t *mac_addr, const uint8_t *data, int len) {
   Serial.println(packet->sequence);
   Serial.print("LED State: ");
   Serial.println(packet->ledState ? "ON" : "OFF");
+  Serial.print("Brightness: ");
+  Serial.println(packet->brightness);
+  Serial.print("Mode: ");
+  Serial.println(packet->mode);
 
-  // Update LED state
+  // Update state from packet
   ledState = (packet->ledState == 1);
-  digitalWrite(LED_PIN, ledState ? HIGH : LOW);
+  brightness = packet->brightness;
+  mode = packet->mode;
 
-  Serial.print("LED set to: ");
-  Serial.println(ledState ? "ON" : "OFF");
+  // Reset blink pattern state when mode changes
+  static uint8_t lastMode = 255;
+  if (mode != lastMode) {
+    lastBlinkTime = 0;
+    blinkState = false;
+    sosIndex = 0;
+    lastMode = mode;
+  }
 
   // Mark as synced if this is the first packet
   if (!stateSynced) {
@@ -203,6 +221,62 @@ void setup() {
 }
 
 // ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+void updateLED() {
+  if (!ledState) {
+    // LED is off
+    analogWrite(LED_PIN, 0);
+    return;
+  }
+
+  unsigned long currentTime = millis();
+
+  switch (mode) {
+    case 0:  // Steady
+      analogWrite(LED_PIN, brightness);
+      break;
+
+    case 1:  // Slow blink (1 Hz - 500ms on, 500ms off)
+      if (currentTime - lastBlinkTime >= 500) {
+        lastBlinkTime = currentTime;
+        blinkState = !blinkState;
+      }
+      analogWrite(LED_PIN, blinkState ? brightness : 0);
+      break;
+
+    case 2:  // Fast blink (4 Hz - 125ms on, 125ms off)
+      if (currentTime - lastBlinkTime >= 125) {
+        lastBlinkTime = currentTime;
+        blinkState = !blinkState;
+      }
+      analogWrite(LED_PIN, blinkState ? brightness : 0);
+      break;
+
+    case 3:  // SOS pattern (... --- ...)
+      {
+        // SOS: 3 short (200ms), 3 long (600ms), 3 short (200ms), pause (1000ms)
+        const unsigned int sosTiming[] = {200, 200, 200, 600, 600, 600, 200, 200, 200, 1000};
+        const int sosCount = 10;
+
+        if (currentTime - lastBlinkTime >= sosTiming[sosIndex]) {
+          lastBlinkTime = currentTime;
+          sosIndex = (sosIndex + 1) % sosCount;
+          // Odd indices are gaps, even are pulses
+          blinkState = (sosIndex % 2 == 0);
+        }
+        analogWrite(LED_PIN, blinkState ? brightness : 0);
+      }
+      break;
+
+    default:
+      analogWrite(LED_PIN, brightness);
+      break;
+  }
+}
+
+// ============================================================================
 // MAIN LOOP
 // ============================================================================
 
@@ -218,9 +292,11 @@ void loop() {
     }
   }
 
-  // Nothing to do in loop - all packet handling is done in callback
-  // Just keep the watchdog happy
-  delay(100);
+  // Update LED based on current state, brightness, and mode
+  updateLED();
+
+  // Small delay to prevent excessive CPU usage
+  delay(10);
 
   // Optional: Print periodic status every 30 seconds
   static unsigned long lastStatusPrint = 0;

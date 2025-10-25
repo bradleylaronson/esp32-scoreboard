@@ -18,6 +18,9 @@ struct StateRequest {
 #pragma pack(push, 1)
 struct Stage1Packet {
   uint8_t ledState;     // 0 = OFF, 1 = ON
+  uint8_t brightness;   // 0-255 PWM brightness (0=off, 255=full)
+  uint8_t mode;         // 0=steady, 1=slow_blink, 2=fast_blink, 3=SOS
+  uint8_t reserved;     // Padding for alignment
   uint32_t sequence;    // Packet sequence number
 };
 #pragma pack(pop)
