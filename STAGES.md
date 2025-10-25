@@ -22,14 +22,16 @@ This document outlines the staged development plan for the ESP32 scoreboard syst
 ### Hardware Required
 - 3× ESP32-DevKit boards
 - 1× Push button (controller)
-- 2× 5mm LEDs (scoreboards)
-- 2× 220Ω resistors (for LEDs)
+- 3× 5mm LEDs (1 for controller, 2 for scoreboards)
+- 3× 220Ω resistors (for LEDs)
 - Breadboards and jumper wires
 
 ### Wiring
 **Controller:**
 - Button: GPIO 2 (with internal pull-up)
-- GND connection for button
+- Button GND connection
+- LED anode → GPIO 4 (through 220Ω resistor)
+- LED cathode → GND
 
 **Scoreboards (both identical):**
 - LED anode → GPIO 2 (through 220Ω resistor)
