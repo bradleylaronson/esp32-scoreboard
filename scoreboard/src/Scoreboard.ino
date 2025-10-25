@@ -27,6 +27,9 @@
 // Set to 0 or 1 to identify which scoreboard this is
 #define SCOREBOARD_ID 0  // Change to 1 for the second scoreboard
 
+// Controller MAC Address (from Dev_Addresses.txt)
+uint8_t CONTROLLER_MAC[] = {0x44, 0x1D, 0x64, 0xF8, 0xFD, 0x84};
+
 // ============================================================================
 // GLOBAL STATE
 // ============================================================================
@@ -35,6 +38,11 @@ uint32_t lastSequence = 0;
 uint32_t packetsReceived = 0;
 uint32_t packetsDropped = 0;
 bool ledState = false;
+
+// State sync management
+bool stateSynced = false;
+unsigned long bootTime = 0;
+const unsigned long SYNC_TIMEOUT_MS = 5000;  // Wait max 5 seconds for sync
 
 // ============================================================================
 // ESP-NOW CALLBACKS
@@ -89,6 +97,12 @@ void onDataReceived(const uint8_t *mac_addr, const uint8_t *data, int len) {
   Serial.print("LED set to: ");
   Serial.println(ledState ? "ON" : "OFF");
 
+  // Mark as synced if this is the first packet
+  if (!stateSynced) {
+    stateSynced = true;
+    Serial.println("[SYNCED] State synchronized with controller!");
+  }
+
   // Print statistics
   Serial.print("Total packets: ");
   Serial.print(packetsReceived);
@@ -140,8 +154,44 @@ void setup() {
   esp_now_register_recv_cb(onDataReceived);
   Serial.println("[OK] Receive callback registered");
 
+  // Add controller as peer so we can send state requests
+  esp_now_peer_info_t peerInfo = {};
+  peerInfo.channel = 0;
+  peerInfo.encrypt = false;
+  memcpy(peerInfo.peer_addr, CONTROLLER_MAC, 6);
+
+  if (esp_now_add_peer(&peerInfo) == ESP_OK) {
+    Serial.print("[OK] Controller peer added: ");
+    for (int i = 0; i < 6; i++) {
+      Serial.printf("%02X", CONTROLLER_MAC[i]);
+      if (i < 5) Serial.print(":");
+    }
+    Serial.println();
+  } else {
+    Serial.println("[ERROR] Failed to add controller peer");
+  }
+
+  // Send state request to controller
+  StateRequest request;
+  request.scoreboardID = SCOREBOARD_ID;
+  request.magic = 0xAA;
+
+  Serial.print("[BOOT] Sending state request to controller (ID: ");
+  Serial.print(SCOREBOARD_ID);
+  Serial.println(")");
+
+  esp_err_t result = esp_now_send(CONTROLLER_MAC, (uint8_t*)&request, sizeof(request));
+  if (result == ESP_OK) {
+    Serial.println("[OK] State request sent");
+  } else {
+    Serial.println("[WARNING] Failed to send state request - will sync from heartbeat");
+  }
+
+  // Record boot time for sync timeout
+  bootTime = millis();
+
   // Flash LED 3 times to indicate ready
-  Serial.println("\n[READY] Waiting for packets from controller...");
+  Serial.println("\n[READY] Waiting for state sync from controller...");
   Serial.println("==============================================\n");
 
   for (int i = 0; i < 3; i++) {
@@ -157,6 +207,17 @@ void setup() {
 // ============================================================================
 
 void loop() {
+  // Check for sync timeout (only once)
+  static bool timeoutWarningShown = false;
+  if (!stateSynced && !timeoutWarningShown) {
+    unsigned long currentTime = millis();
+    if (currentTime - bootTime > SYNC_TIMEOUT_MS) {
+      Serial.println("\n[WARNING] State sync timeout - controller may be offline");
+      Serial.println("[INFO] Will sync from next heartbeat or button press\n");
+      timeoutWarningShown = true;
+    }
+  }
+
   // Nothing to do in loop - all packet handling is done in callback
   // Just keep the watchdog happy
   delay(100);

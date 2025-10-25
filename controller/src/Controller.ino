@@ -43,6 +43,16 @@ uint32_t packetSequence = 0;     // Packet counter
 unsigned long lastButtonPress = 0;
 const unsigned long DEBOUNCE_MS = 200;  // 200ms debounce
 
+// Heartbeat for periodic state broadcast
+unsigned long lastHeartbeat = 0;
+const unsigned long HEARTBEAT_INTERVAL_MS = 3000;  // 3 seconds
+
+// ============================================================================
+// FORWARD DECLARATIONS
+// ============================================================================
+
+void sendCurrentState(bool isResponse = false);
+
 // ============================================================================
 // ESP-NOW CALLBACKS
 // ============================================================================
@@ -55,6 +65,66 @@ void onDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   }
   Serial.print(" | Status: ");
   Serial.println(status == ESP_NOW_SEND_SUCCESS ? "SUCCESS" : "FAIL");
+}
+
+void onDataReceived(const uint8_t *mac_addr, const uint8_t *data, int len) {
+  // Check if this is a StateRequest packet
+  if (len == sizeof(StateRequest)) {
+    StateRequest *request = (StateRequest*)data;
+
+    // Verify magic byte
+    if (request->magic == 0xAA) {
+      Serial.print("\n[STATE REQUEST] Received from scoreboard #");
+      Serial.print(request->scoreboardID);
+      Serial.print(" (MAC: ");
+      for (int i = 0; i < 6; i++) {
+        Serial.printf("%02X", mac_addr[i]);
+        if (i < 5) Serial.print(":");
+      }
+      Serial.println(")");
+
+      // Send immediate response with current state
+      sendCurrentState(true);  // true = responding to request
+    }
+  }
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+void sendCurrentState(bool isResponse) {
+  Stage1Packet packet;
+  packet.ledState = ledState ? 1 : 0;
+  packet.sequence = packetSequence++;
+
+  // Send packet to Scoreboard 1
+  esp_err_t result1 = esp_now_send(SCOREBOARD_1_MAC,
+                                    (uint8_t*)&packet,
+                                    sizeof(packet));
+
+  // Send packet to Scoreboard 2
+  esp_err_t result2 = esp_now_send(SCOREBOARD_2_MAC,
+                                    (uint8_t*)&packet,
+                                    sizeof(packet));
+
+  if (result1 == ESP_OK && result2 == ESP_OK) {
+    if (isResponse) {
+      Serial.print("[RESPONSE] ");
+    }
+    Serial.print("Packet #");
+    Serial.print(packet.sequence);
+    Serial.print(" (LED ");
+    Serial.print(ledState ? "ON" : "OFF");
+    Serial.println(") queued for transmission to both scoreboards");
+  } else {
+    if (result1 != ESP_OK) {
+      Serial.println("ERROR: Failed to queue packet to Scoreboard 1!");
+    }
+    if (result2 != ESP_OK) {
+      Serial.println("ERROR: Failed to queue packet to Scoreboard 2!");
+    }
+  }
 }
 
 // ============================================================================
@@ -91,8 +161,10 @@ void setup() {
   }
   Serial.println("[OK] ESP-NOW initialized");
 
-  // Register send callback
+  // Register callbacks
   esp_now_register_send_cb(onDataSent);
+  esp_now_register_recv_cb(onDataReceived);
+  Serial.println("[OK] ESP-NOW callbacks registered");
 
   // Add specific scoreboard peers
   esp_now_peer_info_t peerInfo = {};
@@ -163,39 +235,22 @@ void loop() {
       // Update controller LED
       digitalWrite(LED_PIN, ledState ? HIGH : LOW);
 
-      // Create packet
-      Stage1Packet packet;
-      packet.ledState = ledState ? 1 : 0;
-      packet.sequence = packetSequence++;
-
-      // Send packet to Scoreboard 1
-      esp_err_t result1 = esp_now_send(SCOREBOARD_1_MAC,
-                                        (uint8_t*)&packet,
-                                        sizeof(packet));
-
-      // Send packet to Scoreboard 2
-      esp_err_t result2 = esp_now_send(SCOREBOARD_2_MAC,
-                                        (uint8_t*)&packet,
-                                        sizeof(packet));
-
-      if (result1 == ESP_OK && result2 == ESP_OK) {
-        Serial.print("Packet #");
-        Serial.print(packet.sequence);
-        Serial.println(" queued for transmission to both scoreboards");
-      } else {
-        if (result1 != ESP_OK) {
-          Serial.println("ERROR: Failed to queue packet to Scoreboard 1!");
-        }
-        if (result2 != ESP_OK) {
-          Serial.println("ERROR: Failed to queue packet to Scoreboard 2!");
-        }
-      }
+      // Send current state to scoreboards
+      sendCurrentState(false);
 
       // Wait for button release (simple approach)
       while (digitalRead(BUTTON_PIN) == LOW) {
         delay(10);
       }
     }
+  }
+
+  // Periodic heartbeat - send current state every 3 seconds
+  unsigned long currentTime = millis();
+  if (currentTime - lastHeartbeat >= HEARTBEAT_INTERVAL_MS) {
+    lastHeartbeat = currentTime;
+    Serial.println("\n[HEARTBEAT] Sending periodic state update");
+    sendCurrentState(false);
   }
 
   // Small delay to prevent excessive CPU usage

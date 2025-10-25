@@ -3,8 +3,18 @@
 #include <cstring>
 
 // ============================================================================
-// STAGE 1 PACKET - Simple proof-of-concept packet
+// STAGE 1 PACKETS - Simple proof-of-concept packets
 // ============================================================================
+
+// Scoreboard to Controller: Request current state on boot
+#pragma pack(push, 1)
+struct StateRequest {
+  uint8_t scoreboardID;  // 0 or 1 to identify which scoreboard is requesting
+  uint8_t magic;         // 0xAA - helps identify packet type
+};
+#pragma pack(pop)
+
+// Controller to Scoreboard: Current state (used for button press, heartbeat, and responses)
 #pragma pack(push, 1)
 struct Stage1Packet {
   uint8_t ledState;     // 0 = OFF, 1 = ON
