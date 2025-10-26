@@ -15,6 +15,7 @@
 #include <WiFi.h>
 #include <esp_now.h>
 #include "../../shared/Packets.h"
+#include "../../shared/Consts.h"
 
 // ============================================================================
 // CONFIGURATION
@@ -142,6 +143,12 @@ void setup() {
   Serial.print("Stage 1 Scoreboard #");
   Serial.print(SCOREBOARD_ID);
   Serial.println(" - ESP-NOW POC");
+  Serial.print("Firmware: ");
+  Serial.println(FIRMWARE_FULL_VERSION);
+  Serial.print("Build: ");
+  Serial.print(FIRMWARE_BUILD_DATE);
+  Serial.print(" ");
+  Serial.println(FIRMWARE_BUILD_TIME);
   Serial.println("====================================\n");
 
   // Configure LED pin

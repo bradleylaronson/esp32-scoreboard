@@ -17,6 +17,7 @@
 #include <WiFi.h>
 #include <esp_now.h>
 #include "../../shared/Packets.h"
+#include "../../shared/Consts.h"
 
 // ============================================================================
 // CONFIGURATION
@@ -291,6 +292,12 @@ void setup() {
 
   Serial.println("\n\n=================================");
   Serial.println("Stage 1 Controller - ESP-NOW POC");
+  Serial.print("Firmware: ");
+  Serial.println(FIRMWARE_FULL_VERSION);
+  Serial.print("Build: ");
+  Serial.print(FIRMWARE_BUILD_DATE);
+  Serial.print(" ");
+  Serial.println(FIRMWARE_BUILD_TIME);
   Serial.println("=================================\n");
 
   // Configure button pin
